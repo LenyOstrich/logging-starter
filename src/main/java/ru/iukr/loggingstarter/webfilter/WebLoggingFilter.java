@@ -10,7 +10,7 @@ import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.ContentCachingResponseWrapper;
-import ru.iukr.loggingstarter.filter.LoggingEndpointFilter;
+import ru.iukr.loggingstarter.util.NonLoggingEndpointChecker;
 import ru.iukr.loggingstarter.masker.LoggingMasker;
 
 import java.io.IOException;
@@ -25,7 +25,7 @@ public class WebLoggingFilter extends HttpFilter {
 
     private static final Logger log = LoggerFactory.getLogger(WebLoggingFilter.class);
     private final LoggingMasker loggingMasker;
-    private final LoggingEndpointFilter loggingEndpointFilter;
+    private final NonLoggingEndpointChecker nonLoggingEndpointChecker;
 
 
     @Override
@@ -33,11 +33,12 @@ public class WebLoggingFilter extends HttpFilter {
             throws IOException, ServletException {
         String method = request.getMethod();
         String requestURI = request.getRequestURI();
-        boolean ignore = loggingEndpointFilter.isIgnoredEndpoint(requestURI);
-        String formattedRequestURI = ignore ? Strings.EMPTY : requestURI + formatQueryString(request);
+        boolean ignore = nonLoggingEndpointChecker.isIgnoredEndpoint(requestURI);
+
+        String formattedRequestURI = requestURI + formatQueryString(request);
+        String headers = inlineHeaders(request);
 
         if (!ignore) {
-            String headers = inlineHeaders(request);
             log.info("Запрос: {}, {}, {}", method, formattedRequestURI, headers);
         }
 
@@ -45,12 +46,24 @@ public class WebLoggingFilter extends HttpFilter {
 
         try {
             chain.doFilter(request, responseWrapper);
-            if (!ignore) {
-                String responseBody = "body=" + loggingMasker.maskFields(new String(responseWrapper.getContentAsByteArray(), StandardCharsets.UTF_8));
-                log.info("Ответ: {} {} {} {}", method, formattedRequestURI, response.getStatus(), responseBody);
-            }
         } finally {
+            byte[] responseBytes = ignore ? null : responseWrapper.getContentAsByteArray();
             responseWrapper.copyBodyToResponse();
+            if (!ignore) {
+                String responseHeaders =
+                        "headers=" + loggingMasker.maskHeaders(
+                                extractResponseHeaders(responseWrapper)
+                        );
+                String responseBody =
+                        "body=" + loggingMasker.maskFields(
+                                new String(responseBytes, StandardCharsets.UTF_8));
+                log.info("Ответ: {} {} {} {} {}",
+                        method,
+                        formattedRequestURI,
+                        response.getStatus(),
+                        responseHeaders,
+                        responseBody);
+            }
         }
     }
 
@@ -65,5 +78,13 @@ public class WebLoggingFilter extends HttpFilter {
         return Optional.ofNullable(request.getQueryString())
                 .map(qs -> "?" + qs)
                 .orElse(Strings.EMPTY);
+    }
+
+    private Map<String, String> extractResponseHeaders(HttpServletResponse response) {
+        return response.getHeaderNames().stream()
+                .collect(Collectors.toMap(
+                        headerName -> headerName,
+                        headerName -> String.join(",", response.getHeaders(headerName))
+                ));
     }
 }

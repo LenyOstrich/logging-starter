@@ -3,6 +3,12 @@ plugins {
     id 'maven-publish'
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 group = 'ru.iukr'
 version = '1.1-SNAPSHOT'
 
@@ -12,10 +18,12 @@ repositories {
 }
 
 def springVersion = '3.2.5'
+def jsonMaskerVersion = '1.1.2'
 
 dependencies {
     implementation "org.springframework.boot:spring-boot-starter-web:${springVersion}"
     implementation "org.springframework.boot:spring-boot-starter-aop:${springVersion}"
+    implementation("dev.blaauwendraad:json-masker:${jsonMaskerVersion}")
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'

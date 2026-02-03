@@ -1,21 +1,19 @@
 package ru.iukr.loggingstarter.masker;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.RequiredArgsConstructor;
+import dev.blaauwendraad.masker.json.JsonMasker;
+import dev.blaauwendraad.masker.json.config.JsonMaskingConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.iukr.loggingstarter.properties.LoggingWebProperties;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.TreeSet;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 public class LoggingMasker {
 
     private static final Logger log = LoggerFactory.getLogger(LoggingMasker.class);
@@ -23,27 +21,44 @@ public class LoggingMasker {
     private final ObjectMapper objectMapper;
     private final LoggingWebProperties loggingWebProperties;
 
+    private final Set<String> maskedFields;
+    private final Set<String> headersToMask;
+    private final String maskedValue;
+
+    public LoggingMasker(ObjectMapper objectMapper, LoggingWebProperties loggingWebProperties) {
+        this.objectMapper = objectMapper;
+        this.loggingWebProperties = loggingWebProperties;
+        this.maskedFields = new HashSet<>(loggingWebProperties.getMaskedFields());
+        this.headersToMask = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        this.headersToMask.addAll(loggingWebProperties.getMaskedHeaders());
+        this.maskedValue = loggingWebProperties.getMaskFieldsValue();
+    }
+
     public String maskFields(Object body) {
-        List<String> maskedFields = loggingWebProperties.getMaskedFields();
-        String maskedValue = loggingWebProperties.getMaskFieldsValue();
-        boolean isString = body instanceof String;
-        try {
-            String jsonBody = isString ? (String) body : objectMapper.writeValueAsString(body);
-            JsonNode root = objectMapper.readTree(jsonBody);
-            JsonNode bodyNode = root.get("body");
-            if (!maskedFields.isEmpty()) {
-                setMaskedValue(bodyNode, maskedFields, maskedValue);
-            }
-            return objectMapper.writeValueAsString(root);
-        } catch (JsonProcessingException e) {
-            log.warn("Не удалось распарсить body как JSON. Маскирование не было выполнено.");
+        if (body == null) {
+            return "";
         }
-        return isString ? (String) body : body.toString();
+        try {
+            String jsonString;
+
+            if (body instanceof String str && isJson(str)) {
+                jsonString = str;
+            } else {
+                jsonString = objectMapper.writeValueAsString(body);
+            }
+            if (maskedFields.isEmpty()) {
+                return jsonString;
+            }
+            JsonMasker jsonMasker = createJsonMasker();
+            return jsonMasker.mask(jsonString);
+        } catch (JsonProcessingException e) {
+            log.warn("Не удалось сериализовать объект типа {} в JSON: {}",
+                    body.getClass().getSimpleName(), e.getMessage(), e);
+            return body.toString();
+        }
     }
 
     public String maskHeaders(Map<String, String> headersMap) {
-        Set<String> headersToMask = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        headersToMask.addAll(loggingWebProperties.getMaskedHeaders());
         String maskValue = loggingWebProperties.getMaskHeadersValue();
         return headersMap.entrySet().stream()
                 .map(entry -> {
@@ -55,14 +70,30 @@ public class LoggingMasker {
                 .collect(Collectors.joining(","));
     }
 
-    private void setMaskedValue(JsonNode bodyNode, List<String> maskedFields, String maskedValue) {
-        if (bodyNode != null && bodyNode.isObject()) {
-            ObjectNode bodyObject = (ObjectNode) bodyNode;
-            for (String field : maskedFields) {
-                if (bodyObject.has(field)) {
-                    bodyObject.put(field, maskedValue);
-                }
-            }
+    private JsonMasker createJsonMasker() {
+        if (maskedValue != null) {
+            return JsonMasker.getMasker(
+                    JsonMaskingConfig.builder()
+                            .maskKeys(maskedFields)
+                            .maskStringsWith(maskedValue)
+                            .maskNumbersWith(maskedValue)
+                            .maskBooleansWith(maskedValue)
+                            .build()
+            );
+        }
+        return JsonMasker.getMasker(maskedFields);
+    }
+
+    private boolean isJson(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        try {
+            objectMapper.readTree(value);
+            return true;
+        } catch (JsonProcessingException e) {
+            return false;
         }
     }
+
 }

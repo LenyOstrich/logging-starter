@@ -15,7 +15,7 @@ public class LoggingWebProperties {
     private String maskHeadersValue = "****";
 
     private List<String> maskedFields = List.of();
-    private String maskFieldsValue = "****";
+    private String maskFieldsValue;
 
-    private List<String> ignoredEndpoints = List.of();
+    private List<String> nonLoggingEndpoints = List.of();
 }

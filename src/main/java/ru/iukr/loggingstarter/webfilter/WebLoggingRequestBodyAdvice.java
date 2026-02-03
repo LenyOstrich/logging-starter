@@ -11,7 +11,7 @@ import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdviceAdapter;
-import ru.iukr.loggingstarter.filter.LoggingEndpointFilter;
+import ru.iukr.loggingstarter.util.NonLoggingEndpointChecker;
 import ru.iukr.loggingstarter.masker.LoggingMasker;
 
 import java.lang.reflect.Type;
@@ -24,7 +24,7 @@ public class WebLoggingRequestBodyAdvice extends RequestBodyAdviceAdapter {
     private static final Logger log = LoggerFactory.getLogger(WebLoggingRequestBodyAdvice.class);
 
     private final LoggingMasker loggingMasker;
-    private final LoggingEndpointFilter loggingEndpointFilter;
+    private final NonLoggingEndpointChecker nonLoggingEndpointChecker;
 
     @Autowired
     private HttpServletRequest request;
@@ -35,18 +35,16 @@ public class WebLoggingRequestBodyAdvice extends RequestBodyAdviceAdapter {
                                 MethodParameter parameter,
                                 Type targetType,
                                 Class<? extends HttpMessageConverter<?>> converterType) {
-        String requestURI = request.getRequestURI() + formatQueryString(request);
-
-        boolean ignore = loggingEndpointFilter.isIgnoredEndpoint(requestURI);
-        if (!ignore) {
-            log.info("Тело запроса: {}", loggingMasker.maskFields(body));
-        }
+        log.info("Тело запроса: {}", loggingMasker.maskFields(body));
         return super.afterBodyRead(body, inputMessage, parameter, targetType, converterType);
     }
 
     @Override
-    public boolean supports(MethodParameter methodParameter, Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {
-        return true;
+    public boolean supports(MethodParameter methodParameter,
+                            Type targetType,
+                            Class<? extends HttpMessageConverter<?>> converterType) {
+        String requestURI = request.getRequestURI() + formatQueryString(request);
+        return !nonLoggingEndpointChecker.isIgnoredEndpoint(requestURI);
     }
 
     private String formatQueryString(HttpServletRequest request) {

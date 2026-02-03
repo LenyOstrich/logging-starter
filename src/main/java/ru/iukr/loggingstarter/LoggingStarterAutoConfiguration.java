@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import ru.iukr.loggingstarter.aspect.LogExecutionAspect;
-import ru.iukr.loggingstarter.filter.LoggingEndpointFilter;
+import ru.iukr.loggingstarter.util.NonLoggingEndpointChecker;
 import ru.iukr.loggingstarter.masker.LoggingMasker;
 import ru.iukr.loggingstarter.properties.LoggingWebProperties;
 import ru.iukr.loggingstarter.webfilter.WebLoggingFilter;
@@ -26,8 +26,8 @@ public class LoggingStarterAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "logging.web-logging", value = "enabled", havingValue = "true", matchIfMissing = true)
-    public LoggingEndpointFilter loggingEndpointFilter(LoggingWebProperties properties) {
-        return new LoggingEndpointFilter(properties);
+    public NonLoggingEndpointChecker loggingEndpointFilter(LoggingWebProperties properties) {
+        return new NonLoggingEndpointChecker(properties);
     }
 
     @Bean
@@ -37,16 +37,16 @@ public class LoggingStarterAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnBean({LoggingMasker.class, LoggingEndpointFilter.class})
+    @ConditionalOnBean({LoggingMasker.class, NonLoggingEndpointChecker.class})
     @ConditionalOnProperty(prefix = "logging.web-logging", value = "enabled", havingValue = "true", matchIfMissing = true)
-    public WebLoggingFilter webLoggingFilter(LoggingMasker loggingMasker, LoggingEndpointFilter filter) {
+    public WebLoggingFilter webLoggingFilter(LoggingMasker loggingMasker, NonLoggingEndpointChecker filter) {
         return new WebLoggingFilter(loggingMasker, filter);
     }
 
     @Bean
     @ConditionalOnBean(WebLoggingFilter.class)
     @ConditionalOnProperty(prefix = "logging.web-logging", value = "log-body", havingValue = "true")
-    public WebLoggingRequestBodyAdvice webLoggingRequestBodyAdvice(LoggingMasker loggingMasker, LoggingEndpointFilter filter) {
+    public WebLoggingRequestBodyAdvice webLoggingRequestBodyAdvice(LoggingMasker loggingMasker, NonLoggingEndpointChecker filter) {
         return new WebLoggingRequestBodyAdvice(loggingMasker, filter);
     }
 }
