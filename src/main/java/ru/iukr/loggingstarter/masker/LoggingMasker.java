@@ -41,14 +41,11 @@ public class LoggingMasker {
     }
 
     public String maskJsonString(String body) {
-
         if (!StringUtils.hasLength(body)) {
-
             return EMPTY_BODY;
         }
 
         if (!isJson(body)) {
-
             return body;
         }
 
@@ -58,11 +55,10 @@ public class LoggingMasker {
     }
 
     public String maskObject(Object body) {
-
         if (body == null) {
-
             return EMPTY_BODY;
         }
+
         try {
             String jsonString = objectMapper.writeValueAsString(body);
 
@@ -81,6 +77,7 @@ public class LoggingMasker {
         return headersMap.entrySet().stream()
                 .map(entry -> {
                     String headerName = entry.getKey();
+
                     return headerName + "=" + (headersToMask.contains(headerName.toLowerCase())
                             ? maskValue
                             : entry.getValue());
@@ -89,9 +86,7 @@ public class LoggingMasker {
     }
 
     private JsonMasker createJsonMasker() {
-
         if (maskedValue != null) {
-
             return JsonMasker.getMasker(
                     JsonMaskingConfig.builder()
                             .maskKeys(maskedFields)
@@ -106,16 +101,13 @@ public class LoggingMasker {
     }
 
     private boolean isJson(String value) {
-
         try {
             objectMapper.readTree(value);
 
             return true;
         } catch (JsonProcessingException e) {
-
             return false;
         }
-
     }
 
 }
