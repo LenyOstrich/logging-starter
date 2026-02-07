@@ -3,15 +3,29 @@ plugins {
     id 'maven-publish'
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
 group = 'ru.iukr'
-version = '1.0-SNAPSHOT'
+version = '1.1-SNAPSHOT'
 
 repositories {
     mavenLocal()
     mavenCentral()
 }
 
+def springVersion = '3.2.5'
+def jsonMaskerVersion = '1.1.2'
+
 dependencies {
+    implementation "org.springframework.boot:spring-boot-starter-web:${springVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-aop:${springVersion}"
+    implementation("dev.blaauwendraad:json-masker:${jsonMaskerVersion}")
+
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
 }
 
 publishing {
