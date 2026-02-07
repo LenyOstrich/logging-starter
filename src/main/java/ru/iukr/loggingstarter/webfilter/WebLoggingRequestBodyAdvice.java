@@ -35,7 +35,7 @@ public class WebLoggingRequestBodyAdvice extends RequestBodyAdviceAdapter {
                                 MethodParameter parameter,
                                 Type targetType,
                                 Class<? extends HttpMessageConverter<?>> converterType) {
-        log.info("Тело запроса: {}", loggingMasker.maskFields(body));
+        log.info("Тело запроса: {}", loggingMasker.maskObject(body));
         return super.afterBodyRead(body, inputMessage, parameter, targetType, converterType);
     }
 

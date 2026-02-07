@@ -3,26 +3,26 @@
   <groupId>ru.iukr</groupId>
   <artifactId>logging-starter</artifactId>
   <versioning>
-    <lastUpdated>20260203112656</lastUpdated>
+    <lastUpdated>20260207101445</lastUpdated>
     <snapshot>
-      <timestamp>20260203.112656</timestamp>
-      <buildNumber>4</buildNumber>
+      <timestamp>20260207.101445</timestamp>
+      <buildNumber>5</buildNumber>
     </snapshot>
     <snapshotVersions>
       <snapshotVersion>
         <extension>pom</extension>
-        <value>1.1-20260203.112656-4</value>
-        <updated>20260203112656</updated>
-      </snapshotVersion>
-      <snapshotVersion>
-        <extension>jar</extension>
-        <value>1.1-20260203.112656-4</value>
-        <updated>20260203112656</updated>
+        <value>1.1-20260207.101445-5</value>
+        <updated>20260207101445</updated>
       </snapshotVersion>
       <snapshotVersion>
         <extension>module</extension>
-        <value>1.1-20260203.112656-4</value>
-        <updated>20260203112656</updated>
+        <value>1.1-20260207.101445-5</value>
+        <updated>20260207101445</updated>
+      </snapshotVersion>
+      <snapshotVersion>
+        <extension>jar</extension>
+        <value>1.1-20260207.101445-5</value>
+        <updated>20260207101445</updated>
       </snapshotVersion>
     </snapshotVersions>
   </versioning>

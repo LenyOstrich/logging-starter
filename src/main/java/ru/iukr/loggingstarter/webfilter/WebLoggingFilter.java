@@ -31,31 +31,29 @@ public class WebLoggingFilter extends HttpFilter {
     @Override
     protected void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        String method = request.getMethod();
         String requestURI = request.getRequestURI();
         boolean ignore = nonLoggingEndpointChecker.isIgnoredEndpoint(requestURI);
 
-        String formattedRequestURI = requestURI + formatQueryString(request);
-        String headers = inlineHeaders(request);
-
         if (!ignore) {
+            String method = request.getMethod();
+            String formattedRequestURI = requestURI + formatQueryString(request);
+            String headers = inlineHeaders(request);
+
             log.info("Запрос: {}, {}, {}", method, formattedRequestURI, headers);
-        }
 
-        ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
+            ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
 
-        try {
-            chain.doFilter(request, responseWrapper);
-        } finally {
-            byte[] responseBytes = ignore ? null : responseWrapper.getContentAsByteArray();
-            responseWrapper.copyBodyToResponse();
-            if (!ignore) {
+            try {
+                chain.doFilter(request, responseWrapper);
+            } finally {
+                byte[] responseBytes = responseWrapper.getContentAsByteArray();
+                responseWrapper.copyBodyToResponse();
                 String responseHeaders =
                         "headers=" + loggingMasker.maskHeaders(
                                 extractResponseHeaders(responseWrapper)
                         );
                 String responseBody =
-                        "body=" + loggingMasker.maskFields(
+                        "body=" + loggingMasker.maskJsonString(
                                 new String(responseBytes, StandardCharsets.UTF_8));
                 log.info("Ответ: {} {} {} {} {}",
                         method,
@@ -64,6 +62,8 @@ public class WebLoggingFilter extends HttpFilter {
                         responseHeaders,
                         responseBody);
             }
+        } else {
+            chain.doFilter(request, response);
         }
     }
 
@@ -71,6 +71,7 @@ public class WebLoggingFilter extends HttpFilter {
         Map<String, String> headersMap = Collections.list(request.getHeaderNames()).stream()
                 .collect(Collectors.toMap(it -> it, request::getHeader));
         String inlineHeaders = loggingMasker.maskHeaders(headersMap);
+
         return "headers={" + inlineHeaders + "}";
     }
 
